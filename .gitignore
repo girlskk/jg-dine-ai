@@ -1,0 +1,11 @@
+# .github 独立仓库的 gitignore
+# 仅推送 markdown / 脚本 / 模板，不带二进制和临时文件
+
+*.zip
+*.tar.gz
+*.bak
+*.swp
+.DS_Store
+
+# 不携带本地 hook
+hooks/
