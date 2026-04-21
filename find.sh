@@ -20,12 +20,3 @@ rg -n --color=always "$kw" conventions.md local-dev.md deploy.md 2>/dev/null || 
 echo ""
 echo "=== pitfalls/ ==="
 rg -ln --color=always "$kw" pitfalls/ 2>/dev/null || true
-
-echo ""
-echo "=== threads (按月，新到旧) ==="
-for dir in $(ls -dr threads/*/  2>/dev/null); do
-  hits=$(rg -l "$kw" "$dir" 2>/dev/null || true)
-  if [ -n "$hits" ]; then
-    echo "$hits"
-  fi
-done

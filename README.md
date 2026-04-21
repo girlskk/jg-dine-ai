@@ -8,13 +8,14 @@
 
 ## 1) 写入规矩（AI 与人都必须遵守）
 
-### 1.1 三层文档定位（互斥，不允许重叠）
+### 1.1 两层文档定位（互斥，不允许重叠）
 
 | 层 | 路径 | 写什么 | 不写什么 |
 |----|------|--------|---------|
 | **conventions** | `conventions.md`（单文件） | 跨模块的硬约定 | 一次性实现细节、模块介绍 |
 | **pitfalls** | `pitfalls/<topic>.md` | 反复踩、未来仍会再撞的坑 | 一次性 bug、配置错误 |
-| **threads** | `threads/YYYY-MM/<slug>.md` | 调试日志，给未来自己回溯 | 已沉淀到 pitfalls 的内容 |
+
+调试过程只进 commit message。不写 thread、不留历史日志。调不动的才翻 git log。
 
 ### 1.2 写入前 4 道 gate（任何一道答 No → 不写）
 
@@ -25,24 +26,22 @@
 
 ### 1.3 升级与删除门槛
 
-- thread 同坑撞 ≥ 2 次 → 强制升级到 `pitfalls/<topic>.md`，原 thread 归档到 `threads/_archive/`
-- thread 超过 90 天未被 grep 引用 → 移到 `threads/_archive/`
-- pitfall 中"半年内对应代码已重构 / 不复存在" → 直接删，不归档
+- 同一个坑 commit message 出现 ≥ 2 次 → 升级到 `pitfalls/<topic>.md`
+- pitfall 对应代码已重构 / 不复存在 → 直接删
 - conventions 条目代码已不存在 → 直接删
 
 ### 1.4 体量硬上限（超限即拆/砍）
 
 - 单个 pitfall 文件 > 200 行 → 必须拆
-- 单个 thread > 100 行 → 砍前因后果，只留现象 + 解法
 - `conventions.md` > 300 行 → 重审哪些条目可删
-- `threads/<月份>/` 单目录 > 30 个文件 → 触发清理（review + 归档/删）
+- `pitfalls/` 总文件数 > 15 → 触发合并 / 删除
 
 ### 1.5 禁止项
 
 - ❌ 不写 repo memory（不跨机、不可读、人类视角不友好）
-- ❌ 不在 thread 里复述已在 pitfalls 的结论（只留指针）
-- ❌ 不写"模块介绍"性质的文档（代码即文档）
-- ❌ 不为 acceptance/E2E 脚本建专门 thread（没有真正的 acceptance 体系）
+- ❌ 不写“模块介绍”性质的文档（代码即文档）
+- ❌ 不建 thread / 模板 / 调试日志目录（这层已被删）
+- ❌ 不为 acceptance/E2E 脚本建专门记录
 
 ---
 
@@ -52,11 +51,9 @@
 
 1. **先查**：`./find.sh <关键词>`，命中 conventions/pitfalls 必读
 2. **再做**：复杂任务才拆步骤；简单任务直接动手
-3. **完成后**：
-   - 命中 1.2 全部 4 个 gate → 写入对应层
-   - 否则只在 commit message 写清楚
+3. **完成后**：命中 1.2 全部 4 个 gate 才写入 conventions/pitfalls；其他只在 commit message 记清楚
 
-完。**没有六步流水线、没有强制 Reflect、没有 task 模板**。
+完。**没有六步流水线、没有 thread、没有 task 模板**。
 
 ---
 
@@ -69,13 +66,7 @@
 ├── conventions.md           ← 跨模块编码硬约定，<300 行
 ├── local-dev.md             ← 代码生成、Compose 启动、接口测试 token
 ├── deploy.md                ← bundle 镜像、Kustomize、ArgoCD、SealedSecrets
-├── pitfalls/                ← 按踩坑模式分类
-├── threads/
-│   ├── 2026-04/
-│   ├── 2026-03/
-│   └── _archive/            ← 90 天未引用 / 已沉淀的归档
-├── templates/
-│   └── thread.md
+├── pitfalls/                ← 按踩坑模式分类，总文件数 ≤ 15
 ├── find.sh                  ← 检索入口
 ├── install-main-repo-hook.sh  ← 主仓 pre-push hook 安装脚本
 └── .gitignore
