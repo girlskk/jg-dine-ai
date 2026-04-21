@@ -64,16 +64,19 @@
 
 ```
 .github/
-├── README.md              ← 本文件，<150 行
-├── conventions.md         ← 跨模块硬约定，<300 行
-├── pitfalls/              ← 按踩坑模式分类
+├── copilot-instructions.md  ← AI agent 入口，含必读顺序与服务总览
+├── README.md                ← 本文件，写入规矩与工作流，<150 行
+├── conventions.md           ← 跨模块编码硬约定，<300 行
+├── local-dev.md             ← 代码生成、Compose 启动、接口测试 token
+├── deploy.md                ← bundle 镜像、Kustomize、ArgoCD、SealedSecrets
+├── pitfalls/                ← 按踩坑模式分类
 ├── threads/
 │   ├── 2026-04/
 │   ├── 2026-03/
-│   └── _archive/          ← 90 天未引用 / 已沉淀的归档
+│   └── _archive/            ← 90 天未引用 / 已沉淀的归档
 ├── templates/
 │   └── thread.md
-├── find.sh                ← 检索入口
+├── find.sh                  ← 检索入口
 ├── install-main-repo-hook.sh  ← 主仓 pre-push hook 安装脚本
 └── .gitignore
 ```
@@ -121,5 +124,7 @@ cp .github/install-main-repo-hook.sh .git/hooks/pre-push && chmod +x .git/hooks/
 
 ## 6) 项目部署与本地测试
 
-这部分**应该**入公司主仓（`deploy/README.md` / `testdata/README.md`），不应该藏在这里。
-当前过渡：临时保留在 `copilot-instructions.md` 第 5、9 节，待迁移。
+- 本地启动 / 接口测试 token：[local-dev.md](local-dev.md)
+- bundle 镜像 / K8s + ArgoCD / SealedSecrets：[deploy.md](deploy.md)
+
+这两份文档是 AI agent 的操作手册，不是给团队 onboard 用的，所以放在 `.github/` 里和其他笔记同步管理。

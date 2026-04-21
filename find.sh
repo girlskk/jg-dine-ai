@@ -14,8 +14,8 @@ fi
 
 kw="$*"
 
-echo "=== conventions.md ==="
-rg -n --color=always "$kw" conventions.md 2>/dev/null || true
+echo "=== conventions.md / local-dev.md / deploy.md ==="
+rg -n --color=always "$kw" conventions.md local-dev.md deploy.md 2>/dev/null || true
 
 echo ""
 echo "=== pitfalls/ ==="
