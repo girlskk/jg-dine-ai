@@ -98,11 +98,22 @@
 - 业务逻辑不要写进 `bootstrap` 装配层；`backendfx` 只负责 Fx wiring，不承载业务编排。
 - 单个服务的配置收敛到该服务的 bootstrap；`eventcore/taskcenter` 如需共享 usecase 也要补齐所需 bootstrap 导出（如 `Auth`）。
 
-### 导出多语言与前置文件名
+### i18n 架构现状
 
-- 导出 payload 包含 `locale` 和 `file_name`；前端在创建任务前生成本地化文件名，不等任务完成才生成。
-- 枚举翻译键按 domain 原始类型命名（如 `CHANNEL_POS`、`DINING_WAY_DINE_IN`）而非按报表字段。
-- `i18n.Translate` 保持 message ID 回退；短信等渠道不能依赖某个特定 key 存在。
+- **进程内方案**：`pkg/i18n` 持有全局 `*i18n.Bundle`（go-i18n/v2），文案源 `etc/language/{en-US,zh-CN}.toml`。每个对外服务必须在 wiring 里装配 `bootstrap/i18n/i18nfx.Module` 才能加载 bundle。
+- **`api/intl` 是未来预留的 gRPC 服务**，当前只有 `Ping`，没承载任何翻译逻辑；现阶段不要把翻译/资源加载迁过去，也不要让别的服务通过 gRPC 调它取文案。等真要做"集中式 i18n 资源服务"（多端共享、热更新、按租户覆盖等）再启用。
+- **枚举翻译键写 `pkg/i18n/enum.go`**（domain enum → message ID 的纯映射），**文案条目写 `etc/language/*.toml`**。两者分工固定：缺 toml 条目时 `Translate` 会回退原 message ID，导出/短信看到的就是 `CHANNEL_POS` 这种裸 key。
+
+### locale 提取与传递
+
+- HTTP 入口由 `pkg/ugin/middleware/locale.go` 统一注入：优先级 `?locale=` → `X-Locale` → `Accept-Language` → 默认 `i18n.DefaultLocale`（当前 `en-US`）。`Locale` 中间件必须排在 `Logger`/`Auth` 之前（见 backend 中间件顺序）。
+- 业务一律 `i18n.Translate(ctx, messageID, templateData)`；**绝不能假设某个 key 一定有翻译**——`Translate` 失败/缺 key 时返回 messageID 本身，短信、推送等直接发对外的渠道要先在调用侧判断是否仍是裸 key。
+- 跨进程/异步链路（taskcenter、eventcore、scheduler、`go func`）context 不会自动带 localizer：**payload 必须内嵌 `locale` 字段**，消费侧重新 `i18n.WithLocalizer(ctx, locale)` 后再用。导出 payload 同时带 `locale` + `file_name`，前端创建任务前就生成本地化文件名。
+
+### 导出多语言
+
+- 导出表头/枚举走 `i18n.Translate`；新增导出字段要同时在 `en-US.toml` 和 `zh-CN.toml` 补齐，缺一个就导出裸 key。
+- 枚举键按 domain 原始类型命名（如 `CHANNEL_POS`、`DINING_WAY_DINE_IN`）而非按报表字段；多个报表共用同一枚举不要起别名。
 
 ---
 

@@ -58,17 +58,17 @@ push 到 `dev` 分支 → ArgoCD 自动同步到 `dine-dev` 命名空间。
 
 **Dapr 服务**（带 `dapr.io/enabled` 注解）：
 
-| 服务 | Dapr app-id | Dapr app-port | 备注 |
-|------|------------|--------------|------|
-| eventcore | eventcore | 8080 | `AUTOMIGRATE=true`，仅等 emqx |
-| scheduler | scheduler | — | 无 Service、无探针，等 emqx + eventcore |
-| taskcenter | taskcenter | 8080 | `REQUESTTIMEOUT=60`，等 emqx + eventcore |
+| 服务       | Dapr app-id | Dapr app-port | 备注                                     |
+| ---------- | ----------- | ------------- | ---------------------------------------- |
+| eventcore  | eventcore   | 8080          | `AUTOMIGRATE=true`，仅等 emqx            |
+| scheduler  | scheduler   | —             | 无 Service、无探针，等 emqx + eventcore  |
+| taskcenter | taskcenter  | 8080          | `REQUESTTIMEOUT=60`，等 emqx + eventcore |
 
 **普通服务**（无 Dapr，等 emqx + eventcore）：
 
-| 服务 | Service 类型 |
-|------|--------------|
-| admin / backend / store / pos / frontend / customer | NodePort |
+| 服务                                                | Service 类型 |
+| --------------------------------------------------- | ------------ |
+| admin / backend / store / pos / frontend / customer | NodePort     |
 
 所有服务通过 `envFrom` 引用：
 - `dine-config` (ConfigMap，由 `config.env` 生成)
