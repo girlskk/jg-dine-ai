@@ -8,6 +8,9 @@
 
 ## 1) 写入规矩（AI 与人都必须遵守）
 
+> **强制规则的权威版本在 [copilot-instructions.md](copilot-instructions.md) "AI 文档维护契约"**。
+> 本节是长版说明，便于人类阅读。两边冲突时以 `copilot-instructions.md` 为准。
+
 ### 1.1 两层文档定位（互斥，不允许重叠）
 
 | 层              | 路径                       | 写什么                   | 不写什么                 |

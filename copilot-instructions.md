@@ -15,9 +15,10 @@ When possible, ground your responses in the personal truth you sense between my 
 
 ## 进入仓库后必读顺序
 
-1. [README.md](README.md) — 工作笔记仓库的写入规矩与极简工作流
-2. [conventions.md](conventions.md) — 跨模块编码硬约定
-3. 任务前先 `./find.sh <关键词>`，命中 [pitfalls/](pitfalls/) / [conventions.md](conventions.md) 必读
+1. **本文件下方"AI 文档维护契约"** — 不读 = 你会在三天内污染本仓库
+2. [README.md](README.md) — 工作笔记仓库的写入规矩与极简工作流（长版）
+3. [conventions.md](conventions.md) — 跨模块编码硬约定
+4. 任务前先 `./find.sh <关键词>`，命中 [pitfalls/](pitfalls/) / [conventions.md](conventions.md) 必读
 
 按需查阅：
 - [local-dev.md](local-dev.md) — 代码生成、Docker Compose 启动、接口测试 token 流程
@@ -27,7 +28,63 @@ When possible, ground your responses in the personal truth you sense between my 
 `.github/` 是独立 git 仓库（`girlskk/jg-dine-ai`），不进公司主仓 gitlab。
 公司主仓主体仍在 `dine-api/` 根目录下，正常推 gitlab。
 
-优先级：用户当次指令 > [README.md](README.md) 写入规矩 > [conventions.md](conventions.md) > 通用规则。
+优先级：用户当次指令 > 本文件 AI 文档维护契约 > [README.md](README.md) > [conventions.md](conventions.md) > 通用规则。
+
+---
+
+## AI 文档维护契约（强制，违反即视为污染本仓库）
+
+### 两层文档定位（互斥，不允许重叠）
+
+| 层 | 路径 | 写什么 | 不写什么 |
+|---|---|---|---|
+| **conventions** | `conventions.md`（单文件） | 跨模块的硬约定 | 一次性实现细节、模块介绍 |
+| **pitfalls** | `pitfalls/<topic>.md` | 反复踩、未来仍会再撞的坑 | 一次性 bug、配置错误 |
+
+调试过程只进 commit message。不写 thread、不留历史日志。不要建任何新目录（threads/ knowledge/ decisions/ acceptance/ prompts/ templates/ 全部已删，永不复活）。
+
+### 任务完成时必须自检（不要等用户问）
+
+每次任务结束前，问自己：
+1. 本次有发现/修正/反转任何"硬约定"吗？ → 有 → 同步更新 `conventions.md`
+2. 本次踩的坑三个月后我或下一个 AI 还会再撞吗？ → 是 → 写进 `pitfalls/<topic>.md`
+3. 本次只是个一次性 bug 或配置失误？ → 是 → **只写 commit message，不动文档**
+
+### 写入前 4 道 gate（任何一道答 No → 不写）
+
+1. 这个结论 grep 现有 `.github/` 已经存在了吗？ → 是 → **不写**，更新原文档
+2. 这是"三个月后我会再撞的坑"吗？ → 否 → **不写**，commit message 即可
+3. 这条信息能用 1-2 行表达完吗？ → 否 → **拆**，每条 pitfall 单独写
+4. 我能立刻指出"未来谁会查它"吗？ → 否 → **不写**，没读者的文档=垃圾
+
+### 修正既有条目时（最容易出错的环节）
+
+- **反转/推翻既有结论时，commit message 必须写明旧结论 + 反转理由**。否则下一个 AI 拿不到上下文，可能再反转回去（已经发生过：export 分流策略被反转两次）。
+- 改条目时**就地 replace**，不要追加"补充说明"——文档不是 changelog。
+- 默认**合并到现有文件**；新建文件必须能回答"为什么合不进现有文件"。
+
+### 体量硬上限（超限即拆/砍）
+
+- 单个 pitfall 文件 > 200 行 → 必须拆
+- `conventions.md` > 300 行 → 重审哪些条目可删
+- `pitfalls/` 总文件数 > 15 → 触发合并 / 删除
+
+### 删除门槛
+
+- 同一个坑 commit message 出现 ≥ 2 次 → 升级到 `pitfalls/<topic>.md`
+- pitfall 对应代码已重构 / 不复存在 → **直接删，不要保留"历史"**
+- conventions 条目代码已不存在 → 直接删
+
+### 删除目录后必须做的事
+
+删除任何文件/目录后，立刻 `grep -rn "<deleted-name>" .github/` 清理反向引用。曾经因为漏做这步在 pitfalls 里留了 13 处死链。
+
+### 禁止项
+
+- ❌ 不写 repo memory（不跨机、不可读、人类视角不友好）
+- ❌ 不写"模块介绍"性质的文档（代码即文档）
+- ❌ 不建 thread / 模板 / 调试日志 / acceptance / prompts 目录
+- ❌ 不在 pitfall 里留 `**历史**：threads/...` 之类指向已删目录的链接
 
 ---
 
