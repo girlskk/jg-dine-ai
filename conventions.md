@@ -101,7 +101,7 @@
 ### i18n 架构现状
 
 - **进程内方案**：`pkg/i18n` 持有全局 `*i18n.Bundle`（go-i18n/v2），文案源 `etc/language/{en-US,zh-CN}.toml`。每个对外服务必须在 wiring 里装配 `bootstrap/i18n/i18nfx.Module` 才能加载 bundle。
-- **`api/intl` 是未来预留的 gRPC 服务**，当前只有 `Ping`，没承载任何翻译逻辑；现阶段不要把翻译/资源加载迁过去，也不要让别的服务通过 gRPC 调它取文案。等真要做"集中式 i18n 资源服务"（多端共享、热更新、按租户覆盖等）再启用。
+- **`api/intl` 是独立 gRPC 微服务**（已部署：`cmd/intl` + `etc/intl.toml` + `intlfx`），当前业务接口只有 `Ping`，没承载翻译逻辑；其他服务也没有通过 gRPC 调它取文案。它的定位是"未来集中式 i18n 资源服务"（多端共享 / 热更新 / 按租户覆盖等）的承载点，但要等真有需求时再往里加方法，现阶段不要把 `pkg/i18n` 的翻译职责迁过去。
 - **枚举翻译键写 `pkg/i18n/enum.go`**（domain enum → message ID 的纯映射），**文案条目写 `etc/language/*.toml`**。两者分工固定：缺 toml 条目时 `Translate` 会回退原 message ID，导出/短信看到的就是 `CHANNEL_POS` 这种裸 key。
 
 ### locale 提取与传递

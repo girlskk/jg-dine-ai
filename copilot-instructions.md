@@ -52,7 +52,7 @@ API → UseCase → Domain → Repository → Infrastructure
 | `api/pos` | 收银台（POS）后端服务 |
 | `api/customer` | 扫码点餐 H5 后端服务 |
 | `api/frontend` | 提供给 local server 调用 |
-| `api/intl` | 预留：未来集中式 i18n 资源服务（gRPC，目前仅 Ping）。当前 i18n 走进程内 `pkg/i18n` + `etc/language/*.toml`，详见 [conventions.md](conventions.md) |
+| `api/intl` | 独立 gRPC 微服务（cmd/intl + etc/intl.toml + intlfx），当前业务接口只有 `Ping`，预留承载未来集中式 i18n 资源（多端共享/热更新/租户覆盖）。当前 i18n 仍走进程内 `pkg/i18n` + `etc/language/*.toml`，详见 [conventions.md](conventions.md) |
 | `api/eventcore` | Dapr 事件订阅 |
 | `api/taskcenter` | 任务中心，scheduler 通过 Dapr 服务间 HTTP 调用 |
 
