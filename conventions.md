@@ -110,8 +110,8 @@
 
 ### 文件导出与异步任务
 
-- 同步/异步导出用 300 条阈值分流；仅 `OrderSaleSummary/ShiftRecord/DineTable` 走分流，`ProductSaleDetail/Summary` 保持纯异步。
-- 直出结果也要落表记录（`run_mode=sync_direct`）；不能只返回文件导致列表追踪缺失。
+- **默认全部走 300 条阈值分流**：count ≤ 阈值 → 同步直出 + 落任务表（`run_mode=sync_direct`），count > 阈值 → 创建异步任务（`run_mode=async_center`）。同步直出也必须 `domain.ReportTask` 落表，否则任务列表会丢追踪。
+- **唯一例外：`ProductSaleDetail` / `ProductSaleSummary` 不分流，永远走异步**。原因：这两个查询带 `GROUP BY`，先 count 判断要再多跑一次 group by，开销翻倍；而走异步的代价只是放弃"小数据立即返回"的体验，跑完 group by 再判断分流就是把已经做完的工作扔掉。其他模块（Order / OrderSaleSummary / ShiftRecord / DineTable / DailySettle / CouponDetail / GiftStatDay / TaxFeeStatDay / AdditionalFeeStatDay / CouponStatDay / MemberTransaction / ProductAttr / HourlyReport 等）都走分流。
 - 任务 callback 执行时按 locale 恢复 i18n context；taskcenter 启动补齐 `i18nfx.Module`。
 
 ### 域基础设施服务中心化
