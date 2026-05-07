@@ -19,6 +19,7 @@ When possible, ground your responses in the personal truth you sense between my 
 2. [README.md](README.md) — 工作笔记仓库的写入规矩与极简工作流（长版）
 3. [conventions.md](conventions.md) — 跨模块编码硬约定
 4. 任务前先 `./find.sh <关键词>`，命中 [pitfalls/](pitfalls/) / [conventions.md](conventions.md) 必读
+5. **新建 / 重构 repo 接口或 usecase 写操作前**，必须先读 [conventions.md](conventions.md) 的"分层职责"+"列表查询与过滤"两节，并以 [usecase/role](../usecase/role/) + [domain/role.go](../domain/role.go) 作为模板对照（命名复数、Create 签名 `(ctx, *CreateXxxParams, user) error`、文件按 `<resource>_<op>.go` 拆分、ListResp 写 types/ 不写 domain/）
 
 按需查阅：
 - [local-dev.md](local-dev.md) — 代码生成、Docker Compose 启动、接口测试 token 流程

@@ -11,6 +11,13 @@
 - UseCase 负责编排、事务、权限校验、多记录业务规则。Repository 只负责 CRUD 和错误映射。
 - "启用互斥、禁用其他"这类跨记录规则必须在 useCase 事务编排；repository 不承载。
 - UseCase 不直接依赖 `fx` 装配语言。当跨模块 usecase 复用时，依赖应通过参数注入。
+- **Create / Update 等写操作的 usecase 签名统一为** `func (i *XxxInteractor) Create(ctx, params *CreateXxxParams, user domain.User) error`：
+  - `params` 只承载用户输入字段；`MerchantID` / `StoreID` / `OperationBy` 等归属字段一律从 `user` 取，**handler 不得手动拼装**。
+  - 实体 ID 在 usecase 内 `uuid.New()` 生成，handler 不得生成 ID。
+  - 默认无返回值（仅 `error`）；确需返回 ID 时再加，并写明理由。
+  - 多步写操作统一用 `i.DS.Atomic(ctx, func(ds domain.DataStore) error { ... })` 包裹。
+- **每个写操作拆独立文件** `usecase/<pkg>/<resource>_<op>.go`（如 `role_create.go` / `moneybox_create.go`），interactor struct + 构造器 + 读操作留在 `<resource>.go`。参考实现：[usecase/role/role_create.go](../usecase/role/role_create.go)。
+- mock 文件（`domain/mock/*.go`）改 interface 后**手改对应 mock**；禁止运行 `go generate ./domain`，除非用户明确要求。
 
 ### domain service 与业务写操作
 
@@ -20,9 +27,11 @@
 
 ### Repository 接口与查询细分
 
-- 单条查询用 `FindByXxx → (*Entity, error)`；列表查询用 `GetXxx → (slice, total, error)` 或 `ListXxx → (slice, error)`。
+- 单条查询用 `FindByXxx → (*Entity, error)`；列表查询用 `GetXxxs → (slice, total, error)` 或 `ListXxxs → (slice, error)`。**禁止** `QueryXxxList` / `GetXxxList` / `FindXxxs` 这类变体——名词用复数即可表达"多条"，不再加 `List` 后缀，动词只在 `Get` / `List` / `Find` 三选一。
 - 仅提取特定字段的查询新增独立方法（如 `GetSimpleProducts`），不用参数 flag。
 - 全量查询和分页查询拆分方法，不用 `pager=nil` 复用一个接口。
+- 写操作命名直接用 `Create` / `Update` / `Delete`，**禁止** `SaveXxx` / `AddXxx` / `RemoveXxx` 等同义词。`Create` 签名 `Create(ctx, *Entity) error`，repo 内部回填 `ID/CreateAt/UpdateAt`；不返回 `*Entity`。
+- ent → domain 转换统一用私有 helper `convertXxxToDomain(*ent.Xxx) *domain.Xxx`，禁止在查询方法里行内 map。
 
 ---
 
@@ -48,9 +57,10 @@
 
 ### Filter 与 Pager 签名
 
-- 列表接口统一签名：`GetXxx(ctx, pager *Pagination, filter *XxxFilter) (slice, total, error)`。
-- Handler 直接透传 `pager` 给 usecase；不拆解 `page/pageSize`。
+- 列表接口统一签名：`GetXxxs(ctx, pager *upagination.Pagination, filter *XxxFilter) (slice, total, error)`。**Pager 与 Filter 必须分离**，不允许把 `Page/Size` 塞进 filter struct。
+- Handler 直接透传 `pager` 给 usecase；不拆解 `page/pageSize`。pager 由 `req.RequestPagination.ToPagination()` 构造。
 - 当查询语义与现有 filter 差异大时，新建专用 filter（如 `StoreRankedFilter` 对应排名查询）。
+- 列表的**响应包装结构**（如 `XxxListResp{Records, Total}`）写在 `api/<svc>/types/`，**不写进 `domain/`**——domain 只承载领域实体和 repo/interactor 接口契约，前端响应形态属于 API 层。
 
 ### StoreID 与多门店
 
@@ -135,6 +145,10 @@
 ---
 
 ## 业务约束
+
+### 用户查询与租户边界
+
+- 按手机号查询后台/门店/会员用户必须显式带 `merchantID` / `storeID` 等租户边界；customer 已鉴权接口从 token 的 `CustomerUser.MerchantID` 传入，禁止仅凭手机号跨品牌查用户。
 
 ### 税费与支付
 

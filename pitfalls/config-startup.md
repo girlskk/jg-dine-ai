@@ -28,6 +28,14 @@
 
 ---
 
+## 本地生成 ent 迁移默认连 3306
+
+**何时撞见**：`just migrate name=<desc>` 报 `localhost:3306 connect: connection refused`。
+**为什么**：`ent/migrate/main.go` 硬编码 `mysql://root@localhost:3306/test`，但 local compose 默认把 MySQL 暴露到宿主机 `33061`。
+**怎么办**：别误判 schema；先确认宿主机是否有 3306 MySQL。没有就手动补小迁移并跑 `just migrate_hash`，或临时提供 3306 连接后再跑生成器。
+
+---
+
 ## 桌台二维码配置需跨服务通用
 
 **何时撞见**：backend 生成的二维码无法跳转；配置 H5 域名和 page path 硬编码。
