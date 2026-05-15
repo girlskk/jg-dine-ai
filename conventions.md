@@ -46,6 +46,7 @@
 
 ### 报表与订单快照字段
 
+- 订单 / 订单销售汇总落库的 `amount` JSON 一律使用 `OrderAmountDB`，不持久化 `total_sale` / `total_sale_exclude_tax` / `business_income` / `business_income_exclude_tax` / `discount_summary` 等派生字段；Repository 边界负责 DB ↔ `OrderAmount` 转换。
 - 订单销售汇总 `Amount` 包含 `RoundingAmount`；不再冗余存储 `OrderSaleSummary.RoundingAmount`。
 - 第三方拆分用独立 JSON 字段（如 `ThirdPartyPlatform`）而非堆标量列。
 - 订单快照中 tax rate 需冗余存储 `tax_code_type` 固定目录代码；报表按代码分类而非按数值税率。
