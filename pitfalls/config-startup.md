@@ -28,13 +28,11 @@
 
 ---
 
-## 本地生成 ent 迁移默认连 3306
+## VS Code 宿主机调试新 schema 时旧 eventcore 不会替你迁库
 
-**何时撞见**：`just migrate name=<desc>` 报 `localhost:3306 connect: connection refused`。
-**为什么**：`ent/migrate/main.go` 硬编码 `mysql://root@localhost:3306/test`，但 local compose 默认把 MySQL 暴露到宿主机 `33061`。
-**怎么办**：别误判 schema；先确认宿主机是否有 3306 MySQL。没有就手动补小迁移并跑 `just migrate_hash`，或临时提供 3306 连接后再跑生成器。
-
----
+**何时撞见**：F5 调宿主机 gateway/taskcenter 新代码，接口报 `Unknown column '<table>.<new_field>'`。
+**为什么**：被调试服务跑的是工作区源码，但迁移靠容器里的 eventcore；旧 `dine-bundle` 不认识新 ent schema。
+**怎么办**：先 `docker compose build builder && docker compose up -d --force-recreate eventcore`；若只救本地库，可手工补 nullable 新列，但不要生成 SQL migration 文件。
 
 ## 桌台二维码配置需跨服务通用
 

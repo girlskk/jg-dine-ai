@@ -51,6 +51,7 @@
 - 第三方拆分用独立 JSON 字段（如 `ThirdPartyPlatform`）而非堆标量列。
 - 订单快照中 tax rate 需冗余存储 `tax_code_type` 固定目录代码；报表按代码分类而非按数值税率。
 - 报表 Total 应按 Subtotal 重新计算而非信任历史快照；历史数据可能被污染。
+- 报表支付统计落库按最小支付方式 ID 粒度；不要用 `PaymentMethodPayType` 做持久化聚合键，展示侧再按 type 聚合。
 
 ---
 
@@ -87,6 +88,10 @@
 ---
 
 ## 快照与持久化
+
+### 数据库迁移
+
+- AI **永远不要生成 SQL 迁移文件**（`ent/migrate/migrations/*.sql`）；schema/ent 代码可以按任务调整，数据库迁移由人类开发者手写或确认。
 
 ### 快照幂等与去重
 
