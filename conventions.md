@@ -130,7 +130,7 @@
 
 ### locale 提取与传递
 
-- HTTP 入口由 `pkg/ugin/middleware/locale.go` 统一注入：优先级 `?locale=` → `X-Locale` → `Accept-Language` → 默认 `i18n.DefaultLocale`（当前 `en-US`）。`Locale` 中间件必须排在 `Logger`/`Auth` 之前（见 backend 中间件顺序）。
+- HTTP 入口由 `pkg/ugin/middleware/locale.go` 统一注入：优先级 `?locale=` → `X-Locale` → `Accept-Language` → 默认 `i18n.DefaultLocale`（当前 `en-US`）。`Locale` 中间件必须排在 `Logger`/`Auth` 之前。
 - 业务一律 `i18n.Translate(ctx, messageID, templateData)`；**绝不能假设某个 key 一定有翻译**——`Translate` 失败/缺 key 时返回 messageID 本身，短信、推送等直接发对外的渠道要先在调用侧判断是否仍是裸 key。
 - 跨进程/异步链路（taskcenter、eventcore、scheduler、`go func`）context 不会自动带 localizer：**payload 必须内嵌 `locale` 字段**，消费侧重新 `i18n.WithLocalizer(ctx, locale)` 后再用。导出 payload 同时带 `locale` + `file_name`，前端创建任务前就生成本地化文件名。
 

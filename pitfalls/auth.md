@@ -1,43 +1,27 @@
 # 鉴权与上下文
 
-> 索引：5 条 pitfall
+> 索引：3 条 pitfall
 
 ---
 
-## 多渠道角色权限需按渠道分别配置
+## 店端权限必须带 login_channel 维度
 
-**何时撞见**：store 端查 POS 渠道权限仍返回 store 渠道菜单。
-**为什么**：`RoleMenuList` 固定查询单一渠道，不接收动态渠道参数。
-**怎么办**：`SetMenus` 和 `RoleMenuList` 都改为接收 `login_channel` 参数；store 端仅允许 `store/pos` 两个渠道。类型绑定规则约束：`binding:"required,oneof=store pos"`。
-
----
-
-## 动态路由模板白名单按 Gin 路由匹配
-
-**何时撞见**：`/table/guest/:id` 声明 `NoAuths()` 后仍然要求鉴权。
-**为什么**：认证中间件对 `c.Request.URL.Path` 匹配白名单（实际 URL）；声明的是 Gin 模板（含动态段）；两者天然不等。
-**怎么办**：共享中间件 `currentPath(c)` 优先返回 `c.FullPath()`（Gin 路由模板）；为空时回退 `c.Request.URL.Path`（实际请求 URL）。`AllowPathPrefixSkipper` 基于 `currentPath` 匹配。
+**何时撞见**：同一个门店账号在 store/POS 两个端看到同一套菜单。
+**为什么**：store 与 POS 共用角色体系，但权限菜单是渠道维度；只按角色查会把两个端混在一起。
+**怎么办**：角色菜单读写接口显式传 `login_channel`；store 侧只允许 `store/pos`。新增权限接口时先 grep `LoginChannel`，不要默认单渠道。
 
 ---
 
-## 匿名接口不能依赖登录上下文
+## 动态路由白名单按 Gin 模板匹配
 
-**何时撞见**：customer `/remark` 返回 nil pointer panic；未登录用户无法调用。
-**为什么**：接口声明 `NoAuths()` 但内部调用 `domain.FromBackendUserContext(ctx)`。
-**怎么办**：恢复 `NoAuths()`；商户信息改为从查询参数解析；使用 `FromCustomerUserContext` 后不再依赖 backend 登录态。handler 补充 `merchant_id` 参数绑定与校验。
-
----
-
-## 客户路由需按权限等级显式分类
-
-**何时撞见**：guest token 无法和 member token 产生能力差异；某些 A 类接口被 guest 穿透。
-**为什么**：`NoAuths()` 混装真正匿名和 guest/member 共用；漏标 handler 默认放开而不是默认收紧。
-**怎么办**：路由分为三档：`NoAuths()`（真正匿名）、`GuestAuths()`（guest/member 都可）、默认（member-only）。鉴权中间件对 guest 路由外的 guest token 返回 403。支付、订单、会话读取声明为 `GuestAuths()`。
+**何时撞见**：声明了动态路径白名单，真实请求仍被鉴权拦截。
+**为什么**：白名单声明的是 Gin 模板（如 `/table/guest/:id`），请求 URL 是真实路径；直接比 `c.Request.URL.Path` 会天然不相等。
+**怎么办**：白名单匹配优先用 `c.FullPath()`；为空时再回退真实 URL。新增 skipper 时不要绕过共享的 `currentPath(c)`。
 
 ---
 
-## 游客身份统一依赖 token 而非登录态分支
+## customer 路由按匿名 / guest / member 三档建模
 
-**何时撞见**：游客订单查询无法获取当前用户信息或需保留两套身份上下文。
-**为什么**：只有会员登录态概念；游客通过 `NoAuths()` 匿名放行，没有真正身份模型。
-**怎么办**：游客登录返回标准 `AuthToken{ID}`；认证器改为先查 member 表再查 Redis guest 快照；两者最终都注入 `CustomerUserContext`。订单统一按 token 中的 `user_id` 查询，不区分类型。客户删除第二套 `MemberContext` 入口。
+**何时撞见**：接口既要支持游客身份又不能放成真正匿名，或匿名接口误读登录上下文。
+**为什么**：`NoAuths()` 只表示真正匿名；guest/member 都是有身份 token 的 customer 用户，不能用“未登录分支”建模。
+**怎么办**：路由分三档：`NoAuths()`（真正匿名）、`GuestAuths()`（guest/member 都可）、默认（member-only）。游客登录也返回标准 `AuthToken{ID}`，认证器最终都注入 `CustomerUserContext`；匿名接口所需商户信息从参数解析。

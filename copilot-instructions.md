@@ -42,6 +42,8 @@ When possible, ground your responses in the personal truth you sense between my 
 | **conventions** | `conventions.md`（单文件） | 跨模块的硬约定 | 一次性实现细节、模块介绍 |
 | **pitfalls** | `pitfalls/<topic>.md` | 反复踩、未来仍会再撞的坑 | 一次性 bug、配置错误 |
 
+pitfall 标题必须写**机制或决策差异**，不要写事故现象。能升级为硬约定的内容只留在 `conventions.md`，删掉对应 pitfall。
+
 调试过程只进 commit message。不写 thread、不留历史日志。不要建任何新目录（threads/ knowledge/ decisions/ acceptance/ prompts/ templates/ 全部已删，永不复活）。
 
 ### 任务完成时必须自检（不要等用户问）
@@ -53,10 +55,14 @@ When possible, ground your responses in the personal truth you sense between my 
 
 ### 写入前 4 道 gate（任何一道答 No → 不写）
 
+先问一句：**这条信息会不会改变未来 AI 的第一步行动？** 不会 → 不写。
+
 1. 这个结论 grep 现有 `.github/` 已经存在了吗？ → 是 → **不写**，更新原文档
 2. 这是"三个月后我会再撞的坑"吗？ → 否 → **不写**，commit message 即可
 3. 这条信息能用 1-2 行表达完吗？ → 否 → **拆**，每条 pitfall 单独写
 4. 我能立刻指出"未来谁会查它"吗？ → 否 → **不写**，没读者的文档=垃圾
+
+记录价值 = 复发概率 × 未来排查成本 × 可操作性 × 代码中难以直接看出。四项都高，才值得进 `.github/`。
 
 ### 修正既有条目时（最容易出错的环节）
 
@@ -73,6 +79,7 @@ When possible, ground your responses in the personal truth you sense between my 
 ### 删除门槛
 
 - 同一个坑 commit message 出现 ≥ 2 次 → 升级到 `pitfalls/<topic>.md`
+- pitfall 已经被 `conventions.md` 覆盖 → 删 pitfall，只留硬约定
 - pitfall 对应代码已重构 / 不复存在 → **直接删，不要保留"历史"**
 - conventions 条目代码已不存在 → 直接删
 
@@ -84,7 +91,7 @@ When possible, ground your responses in the personal truth you sense between my 
 
 - ❌ 不写 repo memory（不跨机、不可读、人类视角不友好）
 - ❌ 不写"模块介绍"性质的文档（代码即文档）
-- ❌ 不建 thread / 模板 / 调试日志 / acceptance / prompts 目录
+- ❌ 不建 thread / 模板 / 调试日志 / acceptance / prompts / templates 目录
 - ❌ 不在 pitfall 里留 `**历史**：threads/...` 之类指向已删目录的链接
 
 ---
@@ -125,10 +132,5 @@ API → UseCase → Domain → Repository → Infrastructure
 - 公共方法透传 `context.Context`，遵循 `StartSpan / SpanErrFinish`
 - 领域错误：`ParamsError` / `NotFoundError` / `ConflictError` / `AlreadyTakenError`，用 `errors.Is/As` 判断
 - 单行 > 120 字符换行，参数各占一行，返回值独占一行缩进对齐（接口签名方法除外）
-- HTTP 状态码映射统一：404 资源不存在 / 409 冲突 / 403 状态阻断 / 401 认证失败
-- 集成：configor → `BackendConfig`；Swagger `/api/swagger`（仅 dev）；健康检查 `/api`；路由前缀 `/api/v1`
-- Backend 中间件顺序：`Recovery → ErrorHandling → TimeLimiter → Observability → PopulateTraceID → PopulateLogger → Locale → Logger → Auth`
-- 事务用 `DataStore.Atomic`；Repo 方法开启/结束 span，写操作后回填 `updated_at`
-- Auth 白名单通过 handler 的 `NoAuths()` / `GuestAuths()` 配置
 
 模块级或反复踩过的细节 → 必看 [conventions.md](conventions.md) 和 [pitfalls/](pitfalls/)。

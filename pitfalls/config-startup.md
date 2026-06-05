@@ -1,18 +1,18 @@
-# 配置与启动
+# 配置与启动排障
 
-> 索引：6 条 pitfall
-
----
-
-## POS DI 启动缺失序列服务
-
-**何时撞见**：POS 反复重启；日志显示 Fx 依赖注入失败。
-**为什么**：POS 新增挂账 handler 引入 `domain.DailySequence` 但 `cmd/pos/main.go` 未注册。
-**怎么办**：参照 backend/store 的启动 wiring；`cmd/pos/main.go` 补齐 `sequence.NewDailySequence/IncrSequence` provider 注册。
+> 索引：5 条 pitfall
 
 ---
 
-## scheduler 首轮启动失败不在 Dapr 是在 TOML 映射
+## 新增依赖后必须逐服务检查 Fx wiring
+
+**何时撞见**：某个服务单独反复重启；日志显示 Fx 依赖注入失败或缺 provider。
+**为什么**：编译只能证明类型存在，不能证明每个 `cmd/<service>/main.go` / bootstrap 都注册了运行时依赖；backend/store/pos/taskcenter/eventcore 的 wiring 互不兜底。
+**怎么办**：先定位实际启动入口，再对照同类服务补齐 provider/exported config；新增 usecase/handler/domain service 依赖时，用 `rg "NewXxx|domain.Xxx|fx.Provide" cmd bootstrap api usecase adapter` 查所有需要启动的服务。
+
+---
+
+## TOML section 必须匹配 bootstrap struct 字段
 
 **何时撞见**：scheduler 反复重启；日志最后才出现 Dapr 连接超时。
 **为什么**：`configor.Load()` 按 struct 字段名映射；字段名与 TOML section 不一致导致 `Cron == ""`。
@@ -20,11 +20,11 @@
 
 ---
 
-## eventcore 启动失败的首个 fatal 在迁移数据冲突
+## eventcore 首个 fatal 常被后续 Dapr 日志盖住
 
 **何时撞见**：eventcore 持续重启；日志充斥 Dapr 连接超时。
-**为什么**：自动迁移失败（旧数据不满足新唯一索引）；后续重启日志被 Dapr 错误覆盖。
-**怎么办**：用 `docker logs <container> | rg 'auto migration failed|OnStart hook failed'` 抓第一次失败。本地库若有冲突数据，直接软删除或迁移前备份。不改代码，先修数据。
+**为什么**：真正的启动失败通常在第一段 fatal（如自动迁移、配置加载、provider 初始化）；服务重启后只剩下游 Dapr/依赖超时噪音。
+**怎么办**：用 `docker logs <container> | rg 'auto migration failed|OnStart hook failed|panic|fatal'` 抓第一次失败。本地库若有冲突数据，先修数据；不要为本地问题生成 SQL migration 文件。
 
 ---
 
@@ -34,17 +34,10 @@
 **为什么**：被调试服务跑的是工作区源码，但迁移靠容器里的 eventcore；旧 `dine-bundle` 不认识新 ent schema。
 **怎么办**：先 `docker compose build builder && docker compose up -d --force-recreate eventcore`；若只救本地库，可手工补 nullable 新列，但不要生成 SQL migration 文件。
 
-## 桌台二维码配置需跨服务通用
-
-**何时撞见**：backend 生成的二维码无法跳转；配置 H5 域名和 page path 硬编码。
-**为什么**：配置写死在 usecase；跨服务 DI 会因缺少配置导致启动失败。
-**怎么办**：配置放在共享 `domain.AppConfig`；`TableQRCodePagePath` 用默认值 `"peopleCount"`，不在 toml/env 重复声明。业务逻辑留在 `usecase/dinetable`；`backendfx` 只做装配，不承载业务。
-
 ---
 
-## 本地 compose 启动要完整重建镜像与依赖
+## 本地整栈排障先消除旧镜像与半启动状态
 
 **何时撞见**：整栈启动失败或单点服务重启；eventcore/taskcenter/backend 陆续报 Auth 或 DI 错误。
 **为什么**：跳过 `docker compose build builder` 或 `--no-deps` 导致旧二进制与新配置不一致；依赖服务启动顺序或环境变量不对。
 **怎么办**：完整执行 `docker compose down && docker compose build builder && docker compose up -d` 后才判启动结果。多个服务缺 bootstrap 配置导出时，补齐所有需要的 `Config` 结构并通过 `etc/*.toml` 装配。用 `docker logs` 而不是 `compose up` 输出找根因。
-

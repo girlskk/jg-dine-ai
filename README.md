@@ -18,18 +18,25 @@
 | **conventions** | `conventions.md`（单文件） | 跨模块的硬约定           | 一次性实现细节、模块介绍 |
 | **pitfalls**    | `pitfalls/<topic>.md`      | 反复踩、未来仍会再撞的坑 | 一次性 bug、配置错误     |
 
+pitfall 标题必须写**机制或决策差异**，不要写事故现象。能升级为硬约定的内容只留在 `conventions.md`，删掉对应 pitfall。
+
 调试过程只进 commit message。不写 thread、不留历史日志。调不动的才翻 git log。
 
 ### 1.2 写入前 4 道 gate（任何一道答 No → 不写）
+
+先问一句：**这条信息会不会改变未来 AI 的第一步行动？** 不会 → 不写。
 
 1. 这个结论 grep 现有 `.github/` 已经存在了吗？ → 是 → **不写**，更新原文档
 2. 这是"三个月后我会再撞的坑"吗？ → 否 → **不写**，commit message 即可
 3. 这条信息能用 1-2 行表达完吗？ → 否 → **拆**，每条 pitfall 单独写
 4. 我能立刻指出"未来谁会查它"吗？ → 否 → **不写**，没读者的文档=垃圾
 
+记录价值 = 复发概率 × 未来排查成本 × 可操作性 × 代码中难以直接看出。四项都高，才值得进 `.github/`。
+
 ### 1.3 升级与删除门槛
 
 - 同一个坑 commit message 出现 ≥ 2 次 → 升级到 `pitfalls/<topic>.md`
+- pitfall 已经被 `conventions.md` 覆盖 → 删 pitfall，只留硬约定
 - pitfall 对应代码已重构 / 不复存在 → 直接删
 - conventions 条目代码已不存在 → 直接删
 
@@ -44,6 +51,7 @@
 - ❌ 不写 repo memory（不跨机、不可读、人类视角不友好）
 - ❌ 不写“模块介绍”性质的文档（代码即文档）
 - ❌ 不建 thread / 模板 / 调试日志目录（这层已被删）
+- ❌ 不建 prompts / templates 目录；一次性提示词不属于项目知识
 - ❌ 不为 acceptance/E2E 脚本建专门记录
 
 ---
