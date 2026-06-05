@@ -19,6 +19,14 @@
 - **每个写操作拆独立文件** `usecase/<pkg>/<resource>_<op>.go`（如 `role_create.go` / `moneybox_create.go`），interactor struct + 构造器 + 读操作留在 `<resource>.go`。参考实现：[usecase/role/role_create.go](../usecase/role/role_create.go)。
 - mock 文件（`domain/mock/*.go`）改 interface 后**手改对应 mock**；禁止运行 `go generate ./domain`，除非用户明确要求。
 
+### fx 装配包（`*fx/`）职责单一
+
+- 任何 `*fx/` 包（`adapterfx` / `usecasefx` / `workflowfx` / `schedulerfx` / `dispatcherfx` …）**只允许**包含三件事：`fx.Module` 声明、`fx.Provide(业务包.NewXxx)`、`fx.Invoke(callback)`。
+- **禁止在 fx 包里定义业务类型或业务构造函数**。类型与构造器一律住在对应业务子包（如 `scheduler/dispatcher/taskd`、`scheduler/dispatcher/smsd`），fx 包只 import 引用。
+- **禁止在 fx 包里 import 基础设施**（`pkg/alert`、`go.uber.org/zap`、`hibiken/asynq` 等）。如果 fx 文件需要这些 import，说明类型放错位置——把它移到业务子包。
+- 新增 / 修改 fx 包前先 grep 现有同类（如 `adapter/adapterfx/adapterfx.go`、`usecase/usecasefx/usecasefx.go`）对照模板，再动手。
+- 历史污染案例：`schedulerfx` 一度承载 `TaskDispatcher` / `SMSDispatcher` 类型 + 构造 + 生命周期注册，导致 fx 文件臃肿且分层倒灌；已重构为 `taskd.Dispatcher` / `smsd.Dispatcher` 各自独立，fx 文件回归纯装配。
+
 ### domain service 与业务写操作
 
 - 当写操作需要 `DataStore` 和多个仓储调用时，应拆成 domain service（如 `ChargeAccount`）而非 usecase。
@@ -140,6 +148,14 @@
 - **默认全部走 300 条阈值分流**：count ≤ 阈值 → 同步直出 + 落任务表（`run_mode=sync_direct`），count > 阈值 → 创建异步任务（`run_mode=async_center`）。同步直出也必须 `domain.ReportTask` 落表，否则任务列表会丢追踪。
 - **唯一例外：`ProductSaleDetail` / `ProductSaleSummary` 不分流，永远走异步**。原因：这两个查询带 `GROUP BY`，先 count 判断要再多跑一次 group by，开销翻倍；而走异步的代价只是放弃"小数据立即返回"的体验，跑完 group by 再判断分流就是把已经做完的工作扔掉。其他模块（Order / OrderSaleSummary / ShiftRecord / DineTable / DailySettle / CouponDetail / GiftStatDay / TaxFeeStatDay / AdditionalFeeStatDay / CouponStatDay / MemberTransaction / ProductAttr / HourlyReport 等）都走分流。
 - 任务 callback 执行时按 locale 恢复 i18n context；taskcenter 启动补齐 `i18nfx.Module`。
+- Excel 导出里的纯数字标识列（订单号、交易号、会员卡号、券模板号等）必须显式声明为字符串：走 `Storage.ExportExcel` 的用 `ExportExcelWithColumnTypes(...ExcelCellTypeString)`；否则 Excel 会按数值写入并显示科学计数法。
+
+### asynq 异步任务（统一走 `domain.TaskEnqueuer`）
+
+- **生产者一律注入 `domain.TaskEnqueuer`**，禁止为每个任务造单独的 `XxxTrigger` 接口；禁止生产者直连 `*asynq.Client`。实现在 [adapter/taskenqueuer/asynq.go](../adapter/taskenqueuer/asynq.go)。
+- **task 协议写在 `domain/task_enqueue.go` 一个文件**：每个任务 3 件套 `TaskTypeXxx` 常量 + `BuildTaskXxx(...) (*TaskParams, error)` builder + `ParseTaskXxxPayload([]byte)` consumer 解析器；队列名常量 `domain.QueueCritical/Default/Reports/Low` 也在这里（生产者与 `bootstrap/asynq` server 配置共用，避免 api/scheduler 反向依赖）。
+- **入队策略走 functional options**：`domain.WithQueue / WithTaskID / WithDelay`，不要给 `TaskParams` 加策略字段。
+- **反例（历史已删，勿复活）**：`adapter/tasktrigger/` + `scheduler/taskcontract/` 双层包 + 每任务一个 domain interface。adapter 不应依赖 scheduler，per-task interface 也是无意义的过度抽象。
 
 ### 域基础设施服务中心化
 
